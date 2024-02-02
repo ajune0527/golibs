@@ -79,6 +79,7 @@ func (p Bar) Print(current, total int) {
 func (p Bar) Finish() {
 	fmt.Printf("\n%s [bar] Total time consumption：%s\n", time.Now().Format(time.DateTime), time.Since(p.start))
 }
+
 func (p Bar) noArrowProgressBar(current, total int) {
 	progress := current * p.barWidth / total
 	bar := strings.Repeat(p.char(), progress) + strings.Repeat(" ", p.barWidth-progress)

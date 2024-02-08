@@ -49,7 +49,7 @@ type KServer struct {
 	timeout     time.Duration
 }
 
-func NewKServer(opts ...ServOption) *KServer {
+func NewKServer(kopts []http.ServerOption, opts ...ServOption) *KServer {
 	srv := &KServer{
 		stopTimeout: 3 * time.Second,
 		timeout:     10 * time.Second,
@@ -63,6 +63,8 @@ func NewKServer(opts ...ServOption) *KServer {
 		http.Timeout(srv.timeout),
 		http.Address(srv.address),
 	}
+	op = append(op, kopts...)
+
 	srv.Server = http.NewServer(op...)
 
 	return srv

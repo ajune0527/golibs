@@ -20,14 +20,14 @@ type Option func(*Server)
 // Handler with server handler.
 func Handler(handler http.Handler) Option {
 	return func(s *Server) {
-		s.handler = handler
+		s.Handler = handler
 	}
 }
 
 // Address with server address.
 func Address(addr string) Option {
 	return func(s *Server) {
-		s.address = addr
+		s.Addr = addr
 	}
 }
 
@@ -41,22 +41,27 @@ func StopTimeout(t time.Duration) Option {
 // IdleTimeout with server IdleTimeout.
 func IdleTimeout(t time.Duration) Option {
 	return func(s *Server) {
-		s.idleTimeout = t
+		s.IdleTimeout = t
 	}
 }
 
-func WithServer(hs *http.Server) Option {
+// ReadTimeout with server IdleTimeout.
+func ReadTimeout(t time.Duration) Option {
 	return func(s *Server) {
-		s.Server = hs
+		s.ReadTimeout = t
+	}
+}
+
+// WriteTimeout with server IdleTimeout.
+func WriteTimeout(t time.Duration) Option {
+	return func(s *Server) {
+		s.WriteTimeout = t
 	}
 }
 
 type Server struct {
-	*http.Server
-	handler     http.Handler
-	address     string
+	http.Server
 	stopTimeout time.Duration
-	idleTimeout time.Duration
 }
 
 func New(opts ...Option) *Server {
@@ -64,29 +69,21 @@ func New(opts ...Option) *Server {
 		stopTimeout: 3 * time.Second,
 	}
 
+	srv.IdleTimeout = 60 * time.Second
+
 	for _, o := range opts {
 		o(srv)
 	}
-
-	srv.Server = &http.Server{
-		Addr:    srv.address,
-		Handler: srv.handler,
-	}
-
-	if srv.idleTimeout != 0 {
-		srv.Server.IdleTimeout = srv.idleTimeout
-	}
-
 	return srv
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	log.Println("[HTTP] Server listen:" + s.address)
+	log.Println("[HTTP] Server listen:" + s.Addr)
 
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		if err := s.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf("HTTP listen: %s", err)
+			return fmt.Errorf("HTTP listen error: %s", err)
 		}
 		return nil
 	})

@@ -2,7 +2,7 @@ package ext
 
 import (
 	"github.com/gin-gonic/gin"
-	errors "github.com/go-kratos/kratos/v2/errors"
+	"github.com/go-kratos/kratos/v2/errors"
 )
 
 type Context struct {
@@ -23,20 +23,12 @@ type Resp struct {
 }
 
 func (r Resp) Error(c *Context, err error) {
-
 	e := errors.FromError(err)
-	if e.Code != 0 {
-		c.JSON(200, gin.H{
-			"code": e.Code,
-			"msg":  e.Message,
-		})
-		return
-	}
-
 	c.JSON(200, gin.H{
-		"code": 400,
-		"msg":  err.Error(),
+		"code": e.Reason,
+		"msg":  e.Message,
 	})
+	return
 }
 
 func (r Resp) Success(c *Context, data interface{}) {

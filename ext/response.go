@@ -33,7 +33,7 @@ func (r Resp) Error(c *Context, err error) {
 
 func (r Resp) Success(c *Context, data interface{}) {
 	c.JSON(200, gin.H{
-		"code": 0,
+		"code": "",
 		"data": data,
 	})
 }

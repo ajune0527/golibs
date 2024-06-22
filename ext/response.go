@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-kratos/kratos/v2/encoding/json"
 	"github.com/go-kratos/kratos/v2/errors"
+	"github.com/google/uuid"
 )
 
 type Context struct {
@@ -80,6 +81,16 @@ func (c *Context) ResponseBody() []byte {
 		return resp.Body()
 	}
 	return nil
+}
+
+func (c *Context) RequestId() string {
+	requestId := c.Request.Header.Get("Request-ID")
+	if requestId == "" {
+		requestId = uuid.New().String()
+		c.Request.Header.Set("Request-ID", requestId)
+	}
+
+	return requestId
 }
 
 func decodeJSON(r io.ReadCloser, obj any) error {

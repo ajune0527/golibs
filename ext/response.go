@@ -1,8 +1,10 @@
 package ext
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/ajune0527/golibs/ext/encoding"
 	"github.com/gin-gonic/gin"
@@ -13,6 +15,8 @@ import (
 
 type Context struct {
 	*gin.Context
+	Body      *bytes.Buffer
+	StartTime time.Time
 }
 
 type Response interface {
@@ -22,7 +26,14 @@ type Response interface {
 
 // NewContext 包装一下
 func NewContext(ctx *gin.Context) *Context {
-	return &Context{ctx}
+	ctx.Writer = &ResponseWriter{
+		ResponseWriter: ctx.Writer,
+		Buffer:         &bytes.Buffer{},
+	}
+	return &Context{
+		Context:   ctx,
+		StartTime: time.Now(),
+	}
 }
 
 type Resp struct {
@@ -46,6 +57,29 @@ func (c *Context) ShouldBindJSON(obj any) error {
 		return fmt.Errorf("invalid request")
 	}
 	return decodeJSON(c.Request.Body, obj)
+}
+
+func (c *Context) GetBody() ([]byte, error) {
+	body, err := c.Context.GetRawData()
+	if err != nil {
+		return nil, err
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(body))
+	return body, nil
+}
+
+func (c *Context) ResponseWriter() *ResponseWriter {
+	if resp, ok := c.Writer.(*ResponseWriter); ok {
+		return resp
+	}
+	return nil
+}
+
+func (c *Context) ResponseBody() []byte {
+	if resp := c.ResponseWriter(); resp != nil {
+		return resp.Body()
+	}
+	return nil
 }
 
 func decodeJSON(r io.ReadCloser, obj any) error {

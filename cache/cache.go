@@ -36,3 +36,15 @@ func (s *Cache[T]) Clear() {
 func (s *Cache[T]) Size() int {
 	return len(s.m)
 }
+
+func (s *Cache[T]) Range() []interface{} {
+	s.L.Lock()
+	defer s.L.Unlock()
+
+	ans := make([]interface{}, 0, s.Size())
+	for _, v := range s.m {
+		ans = append(ans, v)
+	}
+
+	return ans
+}

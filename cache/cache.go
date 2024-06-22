@@ -41,10 +41,10 @@ func (s *Cache[T]) Range() []interface{} {
 	s.L.Lock()
 	defer s.L.Unlock()
 
-	ans := make([]interface{}, 0, s.Size())
+	result := make([]interface{}, 0, s.Size())
 	for _, v := range s.m {
-		ans = append(ans, v)
+		result = append(result, v)
 	}
 
-	return ans
+	return result
 }

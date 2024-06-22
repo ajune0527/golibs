@@ -32,3 +32,7 @@ func (s *Cache[T]) Clear() {
 	defer s.L.Unlock()
 	s.m = make(map[string]T)
 }
+
+func (s *Cache[T]) Size() int {
+	return len(s.m)
+}

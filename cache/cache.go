@@ -1,50 +1,81 @@
 package cache
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
-func NewCache[T any]() *Cache[T] {
-	return &Cache[T]{
-		m: map[string]T{},
-		L: sync.Mutex{},
+type Option[T any] func(*Cache[T])
+
+func WithTicker[T any](duration time.Duration) Option[T] {
+	return func(c *Cache[T]) {
+		if c.ticker != nil {
+			c.ticker.Stop()
+		}
+		c.ticker = time.NewTicker(duration)
+		go func() {
+			for {
+				select {
+				case <-c.ticker.C:
+					c.Clear() // 定时清空缓存
+				case <-c.stopCh:
+					return // 停止 ticker
+				}
+			}
+		}()
+	}
+}
+
+func NewCache[T any](opts ...Option[T]) *Cache[T] {
+	cache := &Cache[T]{
+		m:      sync.Map{},
+		stopCh: make(chan struct{}),
+	}
+	for _, opt := range opts {
+		opt(cache)
+	}
+	return cache
+}
+
+func (s *Cache[T]) Stop() {
+	if s.ticker != nil {
+		s.ticker.Stop()
+		close(s.stopCh)
 	}
 }
 
 type Cache[T any] struct {
-	m map[string]T
-	L sync.Mutex
-}
-
-func (s *Cache[T]) Load(key string) (T, bool) {
-	s.L.Lock()
-	defer s.L.Unlock()
-	v, ok := s.m[key]
-	return v, ok
+	m      sync.Map
+	ticker *time.Ticker
+	stopCh chan struct{}
 }
 
 func (s *Cache[T]) Store(key string, val T) {
-	s.L.Lock()
-	defer s.L.Unlock()
-	s.m[key] = val
+	s.m.Store(key, val)
+}
+
+func (s *Cache[T]) Load(key string) (T, bool) {
+	value, ok := s.m.Load(key)
+	if !ok {
+		var zero T
+		return zero, false
+	}
+	return value.(T), true
 }
 
 func (s *Cache[T]) Clear() {
-	s.L.Lock()
-	defer s.L.Unlock()
-	s.m = make(map[string]T)
+	s.m.Range(func(key, value interface{}) bool {
+		s.m.Delete(key)
+		return true
+	})
 }
 
 func (s *Cache[T]) Size() int {
-	return len(s.m)
-}
+	var size int
+	s.m.Range(func(key, value interface{}) bool {
+		size++
+		return true
+	})
 
-func (s *Cache[T]) Range() []interface{} {
-	s.L.Lock()
-	defer s.L.Unlock()
-
-	result := make([]interface{}, 0, s.Size())
-	for _, v := range s.m {
-		result = append(result, v)
-	}
-
-	return result
+	return size
 }

@@ -10,7 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-kratos/kratos/v2/encoding/json"
-	"github.com/go-kratos/kratos/v2/errors"
+	kerr "github.com/go-kratos/kratos/v2/errors"
+
 	"github.com/google/uuid"
 )
 
@@ -37,14 +38,32 @@ func NewContext(ctx *gin.Context) *Context {
 	}
 }
 
+var (
+	EnableMsgShortCode = false // 是否开启错误消息附加短码
+)
+
 type Resp struct {
 }
 
 func (r Resp) Error(c *Context, err error) {
-	e := errors.FromError(err)
+
+	err2 := kerr.FromError(err)
+	c.Status(int(err2.GetCode()))
+
+	code := err2.GetReason()
+	if code == "" {
+		code = "Unknown"
+	}
+
+	msg := err2.GetMessage()
+
+	if EnableMsgShortCode {
+		msg = fmt.Sprintf("%s[%d]", err2.GetMessage(), time.Now().UnixMilli()%100000)
+	}
+
 	c.JSON(200, gin.H{
-		"code": e.Reason,
-		"msg":  e.Message,
+		"code": code,
+		"msg":  msg,
 	})
 	return
 }

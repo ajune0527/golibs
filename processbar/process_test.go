@@ -7,9 +7,9 @@ import (
 
 func TestPrint(t *testing.T) {
 	total := 10
-	p := NewBar()
+	p := NewBar(WithTotal(total))
 	for i := 0; i <= total; i++ {
-		p.Print(i, total)
+		p.Refresh()
 		time.Sleep(100 * time.Millisecond)
 	}
 }

@@ -2,6 +2,7 @@ package ext
 
 import (
 	"bytes"
+	json2 "encoding/json"
 	"fmt"
 	"io"
 	"net/url"
@@ -144,6 +145,15 @@ func decodeUrlencodedJSON(r io.ReadCloser, obj any) error {
 		for k := range d {
 			m[k] = d.Get(k)
 		}
+	}
+
+	jsonData, err := json2.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	if err = json2.Unmarshal(jsonData, obj); err != nil {
+		return err
 	}
 
 	return validate(obj)

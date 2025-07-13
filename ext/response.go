@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/url"
 	"time"
 
 	"github.com/ajune0527/golibs/ext/encoding"
@@ -76,6 +77,11 @@ func (c *Context) ShouldBindJSON(obj any) error {
 	if c.Request == nil || c.Request.Body == nil {
 		return fmt.Errorf("invalid request")
 	}
+	// 如果是post请求， 但是请求的Content-Type 类型是 application/x-www-form-urlencoded
+	if c.Request.Method == "POST" && c.Request.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+		return decodeUrlencodedJSON(c.Request.Body, obj)
+	}
+
 	return decodeJSON(c.Request.Body, obj)
 }
 
@@ -120,6 +126,24 @@ func decodeJSON(r io.ReadCloser, obj any) error {
 
 	if err = encoding.GetCodec(json.Name).Unmarshal(body, obj); err != nil {
 		return err
+	}
+
+	return validate(obj)
+}
+
+// decodeUrlencodedJSON 将 URL-encoded 格式数据（如 a=1&b=2）解析到目标结构体
+func decodeUrlencodedJSON(r io.ReadCloser, obj any) error {
+	// 1. 读取请求体（URL-encoded 格式，如 "name=foo&age=20"）
+	body, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	m := make(map[string]any)
+	if d, err := url.ParseQuery(string(body)); err == nil {
+		for k := range d {
+			m[k] = d.Get(k)
+		}
 	}
 
 	return validate(obj)
